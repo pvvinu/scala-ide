@@ -1,20 +1,10 @@
 package scala.tools.eclipse.semantichighlighting.classifier
 
 import scala.tools.nsc.util.BatchSourceFile
-import scala.tools.refactoring.util.CompilerProvider
-
 import org.junit.Before
+import scala.tools.eclipse.testsetup.TestProjectSetup
 
-class AbstractSymbolClassifierTest extends CompilerProvider {
-
-  @Before
-  def setUp() {
-    global.unitOfFile.values.foreach { cu =>
-      global.removeUnitOf(cu.source)
-      global.getUnitOf(cu.source)
-    }
-    global.askReset
-  }
+class AbstractSymbolClassifierTest extends TestProjectSetup("semantic-highlighting") {
 
   protected def checkSymbolClassification(source: String, locationTemplate: String, regionTagToSymbolType: Map[String, SymbolType]) {
     val expectedRegionToSymbolNameMap: Map[Region, String] = RegionParser.getRegions(locationTemplate)
@@ -42,12 +32,14 @@ class AbstractSymbolClassifierTest extends CompilerProvider {
 
   private def classifySymbols(source: String, restrictToRegions: Set[Region]): List[(Region, SymbolType)] = {
     val sourceFile = new BatchSourceFile("", source)
-    val symbolInfos: List[SymbolInfo] = SymbolClassifier.classifySymbols(sourceFile, global, useSyntacticHints = true)
-    for {
-      SymbolInfo(symbolType, regions, deprecated) <- symbolInfos
-      region <- regions
-      if restrictToRegions exists region.intersects
-    } yield (region, symbolType)
+    project.withPresentationCompiler { compiler =>
+      val symbolInfos: List[SymbolInfo] = SymbolClassifier.classifySymbols(sourceFile, compiler, useSyntacticHints = true)
+      for {
+        SymbolInfo(symbolType, regions, deprecated) <- symbolInfos
+        region <- regions
+        if restrictToRegions exists region.intersects
+      } yield (region, symbolType)
+    }(orElse = Nil)
   }.distinct sortBy regionOffset
 
   private def regionOffset(regionAndSymbolType: (Region, SymbolType)) = regionAndSymbolType._1.offset
