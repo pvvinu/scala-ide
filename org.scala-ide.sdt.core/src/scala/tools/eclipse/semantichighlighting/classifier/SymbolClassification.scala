@@ -34,12 +34,9 @@ object SymbolClassification {
   val debug = false
 }
 
-class SymbolClassification(protected val sourceFile: SourceFile
-    , compiler: ScalaPresentationCompiler, useSyntacticHints: Boolean)
-  extends Selections with GlobalIndexes with SymbolClassificationDebugger with SymbolTests with TreeCreationMethods {
+class SymbolClassification(protected val sourceFile: SourceFile, val global: ScalaPresentationCompiler, useSyntacticHints: Boolean)
+  extends Selections with GlobalIndexes with SymbolClassificationDebugger with SymbolTests {
 
-  val global: Global = compiler
-  
   import SymbolClassification._
   import global._
 
@@ -47,12 +44,12 @@ class SymbolClassification(protected val sourceFile: SourceFile
     if (useSyntacticHints) SyntacticInfo.getSyntacticInfo(sourceFile.content.mkString) else SyntacticInfo.noSyntacticInfo
 
   lazy val index = {
-    val tree = treeFrom(sourceFile)
-    compiler.askOption {() => GlobalIndex(tree) } getOrElse GlobalIndex(Nil)
+    val tree = global.body(sourceFile)
+    global.askOption {() => GlobalIndex(tree) } getOrElse GlobalIndex(Nil)
   }
 
   def classifySymbols: List[SymbolInfo] = {
-    val rawSymbolInfos: List[SymbolInfo] = compiler.askOption { () =>
+    val rawSymbolInfos: List[SymbolInfo] = global.askOption { () =>
       val allSymbols = index.allSymbols
       //TODO: Remove the following code once symbols are initialized by 
       //      the `GlobalIndex` (https://github.com/scala-ide/scala-ide/pull/61#r358833) 
