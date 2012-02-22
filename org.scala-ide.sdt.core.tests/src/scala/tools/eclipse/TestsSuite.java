@@ -23,6 +23,8 @@ import scala.tools.eclipse.wizards.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import scala.tools.eclipse.semantichighlighting.classifier.SymbolClassifierTestSuite;
+
 
 /**
  * To run this class DO NOT FORGET to set the config.ini in the  "configuration" tab.
@@ -48,5 +50,6 @@ import org.junit.runners.Suite;
   ImplicitsHighlightingTest.class,
   ScalaJavaDepTest.class,
   NestedProjectsTest.class,
+  SymbolClassifierTestSuite.class
 })
 class TestsSuite { }
