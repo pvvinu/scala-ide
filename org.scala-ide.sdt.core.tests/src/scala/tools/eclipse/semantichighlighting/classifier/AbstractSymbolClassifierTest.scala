@@ -3,9 +3,30 @@ package scala.tools.eclipse.semantichighlighting.classifier
 import scala.tools.nsc.util.BatchSourceFile
 import org.junit.Before
 import scala.tools.eclipse.testsetup.TestProjectSetup
+import scala.tools.eclipse.EclipseUserSimulator
+import scala.tools.eclipse.ScalaProject
+import scala.tools.eclipse.util.EclipseUtils
+import scala.tools.eclipse.ScalaPlugin
+import org.junit.After
 
-class AbstractSymbolClassifierTest extends TestProjectSetup("semantic-highlighting") {
+class AbstractSymbolClassifierTest {
 
+  protected val simulator = new EclipseUserSimulator
+  
+  private var project: ScalaProject = _
+  
+  @Before
+  def createProject() {
+    project = simulator.createProjectInWorkspace("symbols-classification", true)
+  }
+  
+  @After
+  def deleteProject() {
+    EclipseUtils.workspaceRunnableIn(ScalaPlugin.plugin.workspaceRoot.getWorkspace) { _ => 
+      project.underlying.delete(true, null)
+    }
+  }
+  
   protected def checkSymbolClassification(source: String, locationTemplate: String, regionTagToSymbolType: Map[String, SymbolType]) {
     val expectedRegionToSymbolNameMap: Map[Region, String] = RegionParser.getRegions(locationTemplate)
     val expectedRegionsAndSymbols: List[(Region, SymbolType)] =
@@ -33,6 +54,12 @@ class AbstractSymbolClassifierTest extends TestProjectSetup("semantic-highlighti
   private def classifySymbols(source: String, restrictToRegions: Set[Region]): List[(Region, SymbolType)] = {
     val sourceFile = new BatchSourceFile("", source)
     project.withPresentationCompiler { compiler =>
+      // first load the source
+      val dummy = new compiler.Response[Unit]
+      compiler.askReload(List(sourceFile), dummy)
+      dummy.get
+    
+      // then run classification
       val symbolInfos: List[SymbolInfo] = SymbolClassifier.classifySymbols(sourceFile, compiler, useSyntacticHints = true)
       for {
         SymbolInfo(symbolType, regions, deprecated) <- symbolInfos
